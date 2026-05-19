@@ -12,6 +12,7 @@ STS-benchmark (supervised) tasks
 
 from __future__ import absolute_import, division, unicode_literals
 
+from tqdm import tqdm
 import os
 import io
 import torch
@@ -66,7 +67,7 @@ class STSEval(object):
         for dataset in self.datasets:
             sys_scores = []
             input1, input2, gs_scores = self.data[dataset]
-            for ii in range(0, len(gs_scores), params.batch_size):
+            for ii in tqdm(range(0, len(gs_scores), params.batch_size), desc=f"Evaluating"):
                 batch1 = input1[ii:ii + params.batch_size]
                 batch2 = input2[ii:ii + params.batch_size]
 

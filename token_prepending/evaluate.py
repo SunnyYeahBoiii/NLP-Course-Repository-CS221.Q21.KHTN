@@ -179,45 +179,63 @@ def main():
                                                      low_cpu_mem_usage = True, torch_dtype=torch.float16)
         model = tp.tensor_parallel(model, [i for i in range(n_gpus)])
     else:
+        tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
+        tokenizer.pad_token_id = 0  # Set the padding token. we want this to be different from the eos token
+        tokenizer.padding_side = "left"  # Allow batched inference
+
+        if args.use_which_plan == 'tp':
+            placeholder_token = '<PST>'
+            tokenizer.add_tokens([placeholder_token])
+            placeholder_token_id = tokenizer.convert_tokens_to_ids(placeholder_token)
+
+        loading_kwargs = {
+            "device_map": "auto",
+            "output_hidden_states": True,
+            "trust_remote_code": True,
+        }
+
+        if args.use_which_plan == 'tp':
+            loading_kwargs["ignore_mismatched_sizes"] = True
+
         if 'llama' in args.model_name_or_path.lower():
-            model = LlamaForCausalLM.from_pretrained(args.model_name_or_path,
-                                                        device_map='auto',
-                                                        output_hidden_states=True,
-                                                        trust_remote_code=True)
+            model = LlamaForCausalLM.from_pretrained(args.model_name_or_path, **loading_kwargs)
             model.model.plan = args.use_which_plan
             model.model.tp_starting_index = args.tp_starting_index
             model.model.tp_exiting_index = args.tp_exiting_index
         elif 'qwen2' in args.model_name_or_path.lower():
-            model = Qwen2ForCausalLM.from_pretrained(args.model_name_or_path,
-                                                        device_map='auto',
-                                                        output_hidden_states=True,
-                                                        trust_remote_code=True)
+            model = Qwen2ForCausalLM.from_pretrained(args.model_name_or_path, **loading_kwargs)
             model.model.plan = args.use_which_plan
             model.model.tp_starting_index = args.tp_starting_index
             model.model.tp_exiting_index = args.tp_exiting_index
         elif 'gemma' in args.model_name_or_path.lower():
-            model = Gemma2ForCausalLM.from_pretrained(args.model_name_or_path,
-                                                        device_map='auto',
-                                                        output_hidden_states=True,
-                                                        trust_remote_code=True)
+            model = Gemma2ForCausalLM.from_pretrained(args.model_name_or_path, **loading_kwargs)
             model.model.plan = args.use_which_plan
             model.model.tp_starting_index = args.tp_starting_index
             model.model.tp_exiting_index = args.tp_exiting_index
         else:
             raise ValueError(f"Cannot find such {args.model_name_or_path.lower()} model!")
-    
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
-    tokenizer.pad_token_id = 0  # Set the padding token. we want this to be different from the eos token
-    tokenizer.padding_side = "left"  # Allow batched inference
 
-    if args.use_which_plan == 'tp':
-        placeholder_token = '<PST>'
-        tokenizer.add_tokens([placeholder_token])
-        placeholder_token_id = tokenizer.convert_tokens_to_ids(placeholder_token)
+
+    if args.use_which_plan == 'tp':        
+        if hasattr(model, 'lm_head') and hasattr(model.lm_head, '_hf_hook'):
+            import accelerate
+            accelerate.hooks.remove_hook_from_module(model.lm_head)
+
+        model.resize_token_embeddings(len(tokenizer), pad_to_multiple_of=None, mean_resizing=False)
         
-        model.resize_token_embeddings(len(tokenizer))
-
+        # update internal vocab size tracking for the custom senllm model
+        if hasattr(model, 'vocab_size'):
+            model.vocab_size = len(tokenizer)
+        if hasattr(model.config, 'vocab_size'):
+            model.config.vocab_size = len(tokenizer)
+        if hasattr(model.model, 'vocab_size'):
+            model.model.vocab_size = len(tokenizer)
+            
         embedding_layer = model.get_input_embeddings()
+        
+        if hasattr(model, 'lm_head'):
+            model.lm_head.to(embedding_layer.weight.device)
+            
         embedding_layer.weight.requires_grad_(False)
         
         num_dim = embedding_layer.weight.shape[1]
@@ -231,7 +249,8 @@ def main():
 
     # Set up the tasks
     if args.task_set == 'sts':
-        args.tasks = ['STS12', 'STS13', 'STS14', 'STS15', 'STS16', 'STSBenchmark', 'SICKRelatedness']
+        # args.tasks = ['STS12', 'STS13', 'STS14', 'STS15', 'STS16', 'STSBenchmark', 'SICKRelatedness']
+        args.tasks = ['STS16', 'STSBenchmark']
         if args.mode == 'dev':
             args.tasks = ['STSBenchmark-dev']
     elif args.task_set == 'transfer':
