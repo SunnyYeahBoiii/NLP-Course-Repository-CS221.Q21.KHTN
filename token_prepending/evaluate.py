@@ -249,8 +249,8 @@ def main():
 
     # Set up the tasks
     if args.task_set == 'sts':
-        # args.tasks = ['STS12', 'STS13', 'STS14', 'STS15', 'STS16', 'STSBenchmark', 'SICKRelatedness']
-        args.tasks = ['STS16', 'STSBenchmark']
+        args.tasks = ['STS12', 'STS13', 'STS14', 'STS15', 'STS16', 'STSBenchmark', 'SICKRelatedness']
+        # args.tasks = ['STS16', 'STSBenchmark']
         if args.mode == 'dev':
             args.tasks = ['STSBenchmark-dev']
     elif args.task_set == 'transfer':
