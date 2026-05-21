@@ -3,7 +3,7 @@ bitsandbytes==0.39.0
 tensor-parallel==1.2.8
 scipy
 datasets==1.2.1
-pandas==1.1.5
+pandas>=1.4.0
 scikit-learn
 prettytable
 gradio

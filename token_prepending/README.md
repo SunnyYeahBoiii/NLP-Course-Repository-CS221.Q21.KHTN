@@ -104,6 +104,9 @@ models:
 ## 🎯 Usage
 
 ```bash
+# Default on this repo: Mac Apple Silicon, Qwen2.5-7B, Vietnamese STS
+bash run.sh
+
 # Run with Token Prepending
 bash run.sh llama-2-7b-tp
 
@@ -112,6 +115,19 @@ bash run.sh llama-2-7b
 
 # Use custom configuration file
 bash run.sh qwen2-7b-tp config.yaml
+
+# Mac Apple Silicon default: auto-download Qwen2.5-7B and run Vietnamese STS
+bash run.sh mac-qwen2.5-7b-vi-tp config.yaml
+
+# Equivalent direct command
+python evaluate.py \
+  --model_name_or_path Qwen/Qwen2.5-7B \
+  --task_set vi-sts \
+  --use_which_plan tp \
+  --device auto \
+  --cache_dir .cache/huggingface \
+  --vietnamese_dataset_name nemixo/stsbenchmark-sts-vietnamese \
+  --vietnamese_split test
 ```
 
 

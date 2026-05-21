@@ -302,6 +302,7 @@ class Qwen2Model(Qwen2PreTrainedModel):
         self.plan = 'vanilla'
         self.tp_starting_index = 1
         self.tp_exiting_index = 99
+        self.placeholder_token_id = config.vocab_size - 1
 
     def get_input_embeddings(self):
         return self.embed_tokens
@@ -357,8 +358,7 @@ class Qwen2Model(Qwen2PreTrainedModel):
         
 
         if self.plan == 'tp':
-            pst_token_indices = find_token_indices(input_ids, token=151646)
-            first_token_indices = find_token_indices(input_ids, token=6025)
+            pst_token_indices = find_token_indices(input_ids, token=self.placeholder_token_id)
 
         if inputs_embeds is None:
             inputs_embeds = self.embed_tokens(input_ids)
@@ -748,4 +748,3 @@ class Qwen2ForCausalLM(Qwen2PreTrainedModel, GenerationMixin):
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
         )
-

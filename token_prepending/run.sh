@@ -1,5 +1,5 @@
 #!/bin/bash
-MODEL_CONFIG=${1:-"llama-2-7b"}
+MODEL_CONFIG=${1:-"mac-qwen2.5-7b-vi-tp"}
 CONFIG_FILE=${2:-"config.yaml"}
 
 echo "using model: $MODEL_CONFIG"

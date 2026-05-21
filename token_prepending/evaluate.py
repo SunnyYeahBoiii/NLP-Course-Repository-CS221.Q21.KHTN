@@ -1,6 +1,11 @@
 import re
 import sys
 import io, os
+
+DEFAULT_LOCAL_HF_HOME = os.path.join(os.path.dirname(__file__), ".cache", "huggingface")
+os.environ.setdefault("HF_HOME", DEFAULT_LOCAL_HF_HOME)
+os.environ.setdefault("HF_DATASETS_CACHE", os.path.join(DEFAULT_LOCAL_HF_HOME, "datasets"))
+
 import torch
 import numpy as np
 import logging
@@ -13,11 +18,27 @@ import transformers
 from transformers import LlamaTokenizer
 from transformers import AutoTokenizer, AutoModelForCausalLM, DynamicCache
 from senllm import LlamaForCausalLM, Qwen2ForCausalLM, Gemma2ForCausalLM
+from model_runtime import (
+    DEFAULT_CACHE_DIR,
+    DEFAULT_MAC_7B_MODEL,
+    build_loading_kwargs,
+    move_model_to_device_if_needed,
+    resolve_torch_device,
+)
 from colorama import Fore, Style
 import textwrap
 from scipy.stats import spearmanr
 import numpy as np
 import yaml
+from datasets import load_dataset
+from vietnamese_sts import (
+    DEFAULT_VIETNAMESE_STS_DATASET,
+    DEFAULT_VIETNAMESE_STS_SPLIT,
+    cosine_similarity_scores,
+    preprocess_sentence_for_prompt,
+    resolve_sts_columns,
+    select_dataset_split,
+)
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -109,13 +130,14 @@ def main():
     parser.add_argument("--tokenizer_name", type=str, 
                         default='')
     parser.add_argument("--model_name_or_path", type=str,
+                        default=DEFAULT_MAC_7B_MODEL,
                         help="Transformers' model name or path")
     parser.add_argument("--mode", type=str,
                         choices=['dev', 'test', 'fasttest'],
                         default='test',
                         help="What evaluation mode to use (dev: fast mode, dev results; test: full mode, test results); fasttest: fast mode, test results")
     parser.add_argument("--task_set", type=str,
-                        choices=['sts', 'transfer', 'full', 'na', 'stsb'],
+                        choices=['sts', 'transfer', 'full', 'na', 'stsb', 'vi-sts'],
                         default='sts',
                         help="What set of tasks to evaluate on. If not 'na', this will override '--tasks'")
     parser.add_argument('--tensor_parallel', action='store_true')
@@ -132,6 +154,15 @@ def main():
                         default=99)
     parser.add_argument("--batch_size", type=int, 
                         default=16)
+    parser.add_argument("--device", type=str,
+                        choices=["auto", "mps", "cuda", "cpu"],
+                        default="auto")
+    parser.add_argument("--cache_dir", type=str,
+                        default=DEFAULT_CACHE_DIR)
+    parser.add_argument("--vietnamese_dataset_name", type=str,
+                        default=DEFAULT_VIETNAMESE_STS_DATASET)
+    parser.add_argument("--vietnamese_split", type=str,
+                        default=DEFAULT_VIETNAMESE_STS_SPLIT)
 
     args = parser.parse_args()
     
@@ -150,8 +181,17 @@ def main():
         args.mode = config.get('mode', args.mode)
         args.task_set = config.get('task_set', args.task_set)
         args.prompt_method = config.get('prompt_method', args.prompt_method)
+        args.device = config.get('device', args.device)
+        args.cache_dir = config.get('cache_dir', args.cache_dir)
+        args.vietnamese_dataset_name = config.get('vietnamese_dataset_name', args.vietnamese_dataset_name)
+        args.vietnamese_split = config.get('vietnamese_split', args.vietnamese_split)
         
-        if 'gpu_config' in config and 'cuda_visible_devices' in config['gpu_config']:
+        should_configure_cuda = args.device == "cuda" or (
+            args.device == "auto"
+            and torch.cuda.is_available()
+            and not torch.backends.mps.is_available()
+        )
+        if should_configure_cuda and 'gpu_config' in config and 'cuda_visible_devices' in config['gpu_config']:
             os.environ['CUDA_VISIBLE_DEVICES'] = config['gpu_config']['cuda_visible_devices']
             print(f"✓ set GPU devices: {config['gpu_config']['cuda_visible_devices']}")
     
@@ -168,50 +208,88 @@ def main():
         {Fore.GREEN}TP Starting layer Index :{Style.RESET_ALL} {args.tp_starting_index}
         {Fore.GREEN}TP Exiting layer Index  :{Style.RESET_ALL} {args.tp_exiting_index}
         {Fore.GREEN}Batch Size              :{Style.RESET_ALL} {args.batch_size}
+        {Fore.GREEN}Task Set                :{Style.RESET_ALL} {args.task_set}
+        {Fore.GREEN}Device                  :{Style.RESET_ALL} {args.device}
+        {Fore.GREEN}Cache Dir               :{Style.RESET_ALL} {args.cache_dir}
     """)
 
     print(hyper_parameters)
 
+    selected_device = resolve_torch_device(args.device)
+    cache_dir = args.cache_dir or None
+    tokenizer_source = args.tokenizer_name or args.model_name_or_path
+    tokenizer = AutoTokenizer.from_pretrained(
+        tokenizer_source,
+        cache_dir=cache_dir,
+        trust_remote_code=True,
+    )
+    tokenizer.pad_token_id = 0  # Set the padding token. we want this to be different from the eos token
+    tokenizer.padding_side = "left"  # Allow batched inference
+
     if args.tensor_parallel:
+        if selected_device.type != "cuda":
+            raise RuntimeError("--tensor_parallel requires CUDA GPUs.")
         import tensor_parallel as tp
         n_gpus = len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))
-        model = AutoModelForCausalLM.from_pretrained(args.model_name_or_path,
-                                                     low_cpu_mem_usage = True, torch_dtype=torch.float16)
+        model = AutoModelForCausalLM.from_pretrained(
+            args.model_name_or_path,
+            cache_dir=cache_dir,
+            low_cpu_mem_usage=True,
+            torch_dtype=torch.float16,
+        )
         model = tp.tensor_parallel(model, [i for i in range(n_gpus)])
     else:
-        tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
-        tokenizer.pad_token_id = 0  # Set the padding token. we want this to be different from the eos token
-        tokenizer.padding_side = "left"  # Allow batched inference
-
         if args.use_which_plan == 'tp':
             placeholder_token = '<PST>'
             tokenizer.add_tokens([placeholder_token])
             placeholder_token_id = tokenizer.convert_tokens_to_ids(placeholder_token)
 
-        loading_kwargs = {
-            "device_map": "auto",
-            "output_hidden_states": True,
-            "trust_remote_code": True,
-        }
+        loading_kwargs = build_loading_kwargs(
+            selected_device.type,
+            cache_dir=cache_dir,
+            output_hidden_states=True,
+        )
 
         if args.use_which_plan == 'tp':
             loading_kwargs["ignore_mismatched_sizes"] = True
 
+        def load_model_with_mps_fallback(model_cls):
+            try:
+                return model_cls.from_pretrained(args.model_name_or_path, **loading_kwargs)
+            except Exception as exc:
+                is_mps_device_map_error = (
+                    selected_device.type == "mps"
+                    and "device_map" in loading_kwargs
+                    and "device_map" in str(exc).lower()
+                )
+                if not is_mps_device_map_error:
+                    raise
+                print("warning: MPS device_map loading failed; retrying then moving model to MPS.")
+                fallback_kwargs = dict(loading_kwargs)
+                fallback_kwargs.pop("device_map", None)
+                return model_cls.from_pretrained(args.model_name_or_path, **fallback_kwargs)
+
         if 'llama' in args.model_name_or_path.lower():
-            model = LlamaForCausalLM.from_pretrained(args.model_name_or_path, **loading_kwargs)
+            model = load_model_with_mps_fallback(LlamaForCausalLM)
             model.model.plan = args.use_which_plan
             model.model.tp_starting_index = args.tp_starting_index
             model.model.tp_exiting_index = args.tp_exiting_index
+            if args.use_which_plan == 'tp':
+                model.model.placeholder_token_id = placeholder_token_id
         elif 'qwen2' in args.model_name_or_path.lower():
-            model = Qwen2ForCausalLM.from_pretrained(args.model_name_or_path, **loading_kwargs)
+            model = load_model_with_mps_fallback(Qwen2ForCausalLM)
             model.model.plan = args.use_which_plan
             model.model.tp_starting_index = args.tp_starting_index
             model.model.tp_exiting_index = args.tp_exiting_index
+            if args.use_which_plan == 'tp':
+                model.model.placeholder_token_id = placeholder_token_id
         elif 'gemma' in args.model_name_or_path.lower():
-            model = Gemma2ForCausalLM.from_pretrained(args.model_name_or_path, **loading_kwargs)
+            model = load_model_with_mps_fallback(Gemma2ForCausalLM)
             model.model.plan = args.use_which_plan
             model.model.tp_starting_index = args.tp_starting_index
             model.model.tp_exiting_index = args.tp_exiting_index
+            if args.use_which_plan == 'tp':
+                model.model.placeholder_token_id = placeholder_token_id
         else:
             raise ValueError(f"Cannot find such {args.model_name_or_path.lower()} model!")
 
@@ -245,7 +323,10 @@ def main():
             embedding_layer.weight[placeholder_token_id] = torch.randn(num_dim, device=device)
         embedding_layer.weight.requires_grad_(True)
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model = move_model_to_device_if_needed(model, selected_device)
+    model.eval()
+
+    device = selected_device
 
     # Set up the tasks
     if args.task_set == 'sts':
@@ -260,6 +341,8 @@ def main():
         args.tasks += ['MR', 'CR', 'MPQA', 'SUBJ', 'SST2', 'TREC', 'MRPC']
     elif args.task_set == 'stsb':
         args.tasks = ['STSBenchmark']
+    elif args.task_set == 'vi-sts':
+        args.tasks = ['VietnameseSTS']
     # Set params for SentEval
     if args.mode == 'dev' or args.mode == 'fasttest':
         # Fast mode
@@ -317,22 +400,14 @@ def main():
 
     print(task_prompts)
 
-    def batcher(params, batch, max_length=None):
-        # Handle rare token encoding issues in the dataset
-        if len(batch) >= 1 and len(batch[0]) >= 1 and isinstance(batch[0][0], bytes):
-            batch = [[word.decode('utf-8') for word in s] for s in batch]
-
-        sentences = [' '.join(s) for s in batch]
-        input_sentences = [' '.join(s) for s in batch]
+    def encode_sentences_for_model(sentences, max_length=None, use_vi_tokenizer=False):
         if max_length == 500:
             sentences = [tokenizer.decode(tokenizer.encode(s, add_special_tokens=False)[:max_length]) for s in sentences]
             max_length = 512
 
         new_sentences = []
         for i, s in enumerate(sentences):
-            if len(s) > 0 and s[-1] not in '.?"\'': s += '.'
-            s = s.replace('"', '\'')
-            if len(s) > 0 and '?' == s[-1]: s = s[:-1] + '.'
+            s = preprocess_sentence_for_prompt(s, use_vi_tokenizer=use_vi_tokenizer)
             for prompt in task_prompts:
                 new_sentences.append(prompt.replace('*sent 0*', s).strip())
         sentences = new_sentences
@@ -362,7 +437,52 @@ def main():
 
             return outputs.cpu()
 
+    def batcher(params, batch, max_length=None):
+        # Handle rare token encoding issues in the dataset
+        if len(batch) >= 1 and len(batch[0]) >= 1 and isinstance(batch[0][0], bytes):
+            batch = [[word.decode('utf-8') for word in s] for s in batch]
+
+        sentences = [' '.join(s) for s in batch]
+        return encode_sentences_for_model(sentences, max_length=max_length, use_vi_tokenizer=False)
+
+    def evaluate_vietnamese_sts():
+        dataset_dict = load_dataset(args.vietnamese_dataset_name, cache_dir=cache_dir)
+        dataset = select_dataset_split(dataset_dict, args.vietnamese_split)
+        sentence1_field, sentence2_field, score_field = resolve_sts_columns(dataset.column_names)
+
+        predictions = []
+        labels = []
+        for start in tqdm.trange(0, len(dataset), args.batch_size, desc="Vietnamese STS"):
+            end = min(start + args.batch_size, len(dataset))
+            batch = dataset[start:end]
+            embeddings_a = encode_sentences_for_model(
+                batch[sentence1_field],
+                use_vi_tokenizer=True,
+            ).numpy()
+            embeddings_b = encode_sentences_for_model(
+                batch[sentence2_field],
+                use_vi_tokenizer=True,
+            ).numpy()
+            predictions.extend(cosine_similarity_scores(embeddings_a, embeddings_b).tolist())
+            labels.extend([float(score) for score in batch[score_field]])
+
+        correlation = spearmanr(labels, predictions)
+        print_table(
+            ["Dataset", "Split", "Examples", "Spearman"],
+            [
+                args.vietnamese_dataset_name,
+                args.vietnamese_split,
+                str(len(dataset)),
+                "%.2f" % (correlation.correlation * 100),
+            ],
+        )
+        return correlation
+
     results = {}
+
+    if args.task_set == 'vi-sts':
+        results['VietnameseSTS'] = evaluate_vietnamese_sts()
+        return
 
     for task in args.tasks:
         se = senteval.engine.SE(params, batcher, prepare)

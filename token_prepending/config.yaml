@@ -2,7 +2,7 @@
 # support multiple models and configurations
 
 # default config name
-default_config: llama-2-7b
+default_config: mac-qwen2.5-7b-vi-tp
 
 # GPU config
 gpu_config:
@@ -11,6 +11,22 @@ gpu_config:
 # model config list
 # Add new models here
 models:
+  # Mac Apple Silicon default: downloads Qwen2.5-7B from Hugging Face on first run.
+  mac-qwen2.5-7b-vi-tp:
+    model_name_or_path: "Qwen/Qwen2.5-7B"
+    use_which_plan: tp
+    output_layer: -2
+    tp_starting_index: 1
+    tp_exiting_index: 6
+    batch_size: 1
+    mode: test
+    task_set: vi-sts
+    prompt_method: cot
+    device: auto
+    cache_dir: ".cache/huggingface"
+    vietnamese_dataset_name: "nemixo/stsbenchmark-sts-vietnamese"
+    vietnamese_split: test
+
   # Llama-2-7b vanilla mode
   llama-2-7b:
     model_name_or_path: "/workspace/llm_weights/Llama-2-7b-hf"

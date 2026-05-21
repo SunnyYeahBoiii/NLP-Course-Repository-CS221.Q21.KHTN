@@ -477,7 +477,6 @@ class LlamaModel(LlamaPreTrainedModel):
         
         if self.plan == "tp":
             pst_token_indices = find_token_indices(input_ids, token=32000)
-            first_token_indices = find_token_indices(input_ids, token=1)
         
         if inputs_embeds is None:
             inputs_embeds = self.embed_tokens(input_ids)

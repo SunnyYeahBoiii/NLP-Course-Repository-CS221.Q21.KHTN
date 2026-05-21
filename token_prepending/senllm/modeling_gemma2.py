@@ -112,7 +112,6 @@ class Gemma2Model(Gemma2PreTrainedModel):
         
         if self.plan == "tp":
             pst_token_indices = find_token_indices(input_ids, token=256000)
-            first_token_indices = find_token_indices(input_ids, token=2)
 
         if inputs_embeds is None:
             inputs_embeds = self.embed_tokens(input_ids)
@@ -448,4 +447,3 @@ class Gemma2ForCausalLM(Gemma2PreTrainedModel):
             }
         )
         return model_inputs
-
