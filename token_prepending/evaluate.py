@@ -425,7 +425,16 @@ def main():
             batch[k] = batch[k].to(device) if batch[k] is not None else None
         # Get raw embeddings
         with torch.no_grad():
-            raw_outputs = model(output_hidden_states=True, return_dict=True, **batch)
+            # Sentence embedding extraction only needs decoder hidden states. With
+            # device_map="auto", the CausalLM lm_head can live on a different GPU
+            # from the final hidden state, so bypass logits computation.
+            embedding_model = getattr(model, "model", model)
+            raw_outputs = embedding_model(
+                output_hidden_states=True,
+                return_dict=True,
+                use_cache=False,
+                **batch,
+            )
             hidden_states = raw_outputs.hidden_states
             outputs = hidden_states[args.output_layer][:, -1, :]
             outputs = outputs.view(-1, len(task_prompts), outputs.size()[1]).mean(dim=1) # Average the embeddings from different tasks 
