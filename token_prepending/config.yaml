@@ -18,10 +18,10 @@ models:
     output_layer: -1
     tp_starting_index: 0  # not used in vanilla mode
     tp_exiting_index: 0   # not used in vanilla mode
-    batch_size: 16
+    batch_size: 8
     mode: test
     task_set: sts
-    prompt_method: cot
+    prompt_method: prompteol
 
   # Llama-2-7b TP mode
   llama-2-7b-tp:
@@ -33,7 +33,7 @@ models:
     batch_size: 16
     mode: test
     task_set: sts
-    prompt_method: cot
+    prompt_method: prompteol
 
   llama-2-13b:
     model_name_or_path: "/tos-bjml-ai4chem/fuyuchen/llm_weights/Llama-2-7b-hf"
