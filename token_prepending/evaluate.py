@@ -121,6 +121,8 @@ def main():
     parser.add_argument('--tensor_parallel', action='store_true')
     parser.add_argument('--prompt_method', type=str, 
                         default='prompteol', choices=['prompteol', 'metaeol', 'cot', 'ke'], help="What prompt method to use.")
+    parser.add_argument('--prompt_language', type=str,
+                        default='en', choices=['en', 'vi'], help="What language to use for the prompt template.")
     parser.add_argument("--use_which_plan", type=str,
                         choices=['tp', 'vanilla'],
                         default='tp')
@@ -150,6 +152,7 @@ def main():
         args.mode = config.get('mode', args.mode)
         args.task_set = config.get('task_set', args.task_set)
         args.prompt_method = config.get('prompt_method', args.prompt_method)
+        args.prompt_language = config.get('prompt_language', args.prompt_language)
         
         if 'gpu_config' in config and 'cuda_visible_devices' in config['gpu_config']:
             os.environ['CUDA_VISIBLE_DEVICES'] = config['gpu_config']['cuda_visible_devices']
@@ -163,6 +166,7 @@ def main():
         {Fore.YELLOW}-------------{Style.RESET_ALL}
         {Fore.GREEN}Backbone                :{Style.RESET_ALL} {args.model_name_or_path.split('/')[-1]}
         {Fore.GREEN}Prompt Method           :{Style.RESET_ALL} {args.prompt_method}
+        {Fore.GREEN}Prompt Language         :{Style.RESET_ALL} {args.prompt_language}
         {Fore.GREEN}Output Layer Index      :{Style.RESET_ALL} {args.output_layer}
         {Fore.GREEN}Plan                    :{Style.RESET_ALL} {args.use_which_plan}
         {Fore.GREEN}TP Starting layer Index :{Style.RESET_ALL} {args.tp_starting_index}
@@ -302,10 +306,16 @@ def main():
                             "In this task, you're reviewing a scientific abstract. Your task is to identify the main entities (e.g., proteins, diseases) and their relations (e.g., causes, treats). For this task, this sentence : \"*sent 0*\" highlights the primary entity or relation in one word:\"",
                             ]
     elif args.prompt_method == "prompteol":
-        if args.use_which_plan == 'tp':
-            task_prompts = ['This sentence : <PST> \"*sent 0*\" means in one word:\"']
+        if args.prompt_language == 'vi':
+            if args.use_which_plan == 'tp':
+                task_prompts = ['Câu sau : <PST> \"*sent 0*\" có ý nghĩa tóm gọn trong một từ là:\"']
+            else:
+                task_prompts = ['Câu sau : \"*sent 0*\" có ý nghĩa tóm gọn trong một từ là:\"']
         else:
-            task_prompts = ["This sentence : \"*sent 0*\" means in one word:\""]
+            if args.use_which_plan == 'tp':
+                task_prompts = ['This sentence : <PST> \"*sent 0*\" means in one word:\"']
+            else:
+                task_prompts = ["This sentence : \"*sent 0*\" means in one word:\""]
     elif args.prompt_method == "cot":
         if args.use_which_plan == 'tp':
             task_prompts = ['After thinking step by step , this sentence : <PST> \"*sent 0*\" means in one word:\"']

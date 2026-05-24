@@ -1,0 +1,17 @@
+model,encode_mode,pooling,word_segmenter,prompt_template,task,rows,pearson,spearman
+vinai/phobert-base-v2,avg,mean,underthesea,"Câu này: ""*sent 0*"" có nghĩa là <MASK>",STSBenchmark-Vi,1379,0.523090,0.537872
+vinai/phobert-base-v2,avg,mean,underthesea,"Câu này: ""*sent 0*"" có nghĩa là <MASK>",SICKRelatedness-Vi,4927,0.632152,0.607909
+vinai/phobert-base-v2,avg,mean,underthesea,"Câu này: ""*sent 0*"" có nghĩa là <MASK>",STSBenchmark-Vi,1379,0.523090,0.537872
+vinai/phobert-base-v2,avg,mean,underthesea,"Câu này: ""*sent 0*"" có nghĩa là <MASK>",SICKRelatedness-Vi,4927,0.632152,0.607909
+vinai/phobert-base-v2,prompt,mean,underthesea,"Câu này: ""*sent 0*"" có nghĩa là <MASK>",STSBenchmark-Vi,1379,0.480873,0.518713
+vinai/phobert-base-v2,prompt,mean,underthesea,"Câu này: ""*sent 0*"" có nghĩa là <MASK>",SICKRelatedness-Vi,4927,0.540511,0.563303
+vinai/phobert-base-v2,prompt,mean,underthesea,"This sentence: ""*sent 0*"" means <MASK>",STSBenchmark-Vi,1379,0.488568,0.515691
+vinai/phobert-base-v2,prompt,mean,underthesea,"This sentence: ""*sent 0*"" means <MASK>",SICKRelatedness-Vi,4927,0.569486,0.579289
+vinai/phobert-base-v2,prompt,mean,underthesea,"This sentence: ""*sent 0*"" means <mask>",STSBenchmark-Vi,1379,0.519644,0.540469
+vinai/phobert-base-v2,prompt,mean,underthesea,"This sentence: ""*sent 0*"" means <mask>",SICKRelatedness-Vi,4927,0.580768,0.579928
+vinai/phobert-base-v2,prompt,mean,underthesea,"This sentence: ""*sent 0*"" means <mask>",STSBenchmark-Vi,1379,0.240717,0.302909
+vinai/phobert-base-v2,prompt,mean,underthesea,"This sentence: ""*sent 0*"" means <mask>",SICKRelatedness-Vi,4927,0.351026,0.417777
+vinai/phobert-base-v2,avg,mean,underthesea,"This sentence: ""*sent 0*"" means <mask>",STSBenchmark-Vi,1379,0.523090,0.537872
+vinai/phobert-base-v2,avg,mean,underthesea,"This sentence: ""*sent 0*"" means <mask>",SICKRelatedness-Vi,4927,0.632152,0.607909
+vinai/phobert-base-v2,prompt,mean,underthesea,"This sentence: ""*sent 0*"" means <mask>",STSBenchmark-Vi,1379,0.240717,0.302909
+vinai/phobert-base-v2,prompt,mean,underthesea,"This sentence: ""*sent 0*"" means <mask>",SICKRelatedness-Vi,4927,0.351026,0.417777

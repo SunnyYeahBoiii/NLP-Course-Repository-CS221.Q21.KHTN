@@ -20,9 +20,15 @@ Llama-2-7b-hf 1.0 1 0.00 0.00 0.00 0.00 0.00 80.20 0.00 11.46
 Llama-2-7b-hf 1.0 1 0.00 0.00 0.00 0.00 0.00 80.22 0.00 11.46
 Llama-2-7b-hf 1.0 1 0.00 0.00 0.00 0.00 0.00 80.22 0.00 11.46
 Llama-2-7b-hf 1.0 0 0.00 0.00 0.00 0.00 0.00 78.95 0.00 11.28
-Llama-2-7b-hf 1.0 0 0.00 0.00 0.00 0.00 0.00 0.00 60.62 8.66 SICK-R-Vi, LLaMA2-7B, vanilla, Eng-Prompt, EOL
-Llama-2-7b-hf 1.0 1 0.00 0.00 0.00 0.00 0.00 0.00 67.19 9.60 SICK-R-Vi, LLaMA2-7B, tp     , Eng-Prompt, EOL
-Llama-2-7b-hf 1.0 0 0.00 0.00 0.00 0.00 0.00 59.49 0.00 8.50 STS-B-Vi , LLaMA2-7B, vanilla, Eng-Prompt, EOL
-Llama-2-7b-hf 1.0 1 0.00 0.00 0.00 0.00 0.00 67.87 0.00 9.70 STS-B-Vi , LLaMA2-7B, tp     , Eng-Prompt, EOL
-Qwen2-7B 1.0 0 0.00 0.00 0.00 0.00 0.00 65.53 68.47 19.14    STS-Vi   , Qwen2-7B , vanilla, Eng-Prompt, EOL
-Qwen2-7B 1.0 1 0.00 0.00 0.00 0.00 0.00 70.33 68.42 19.82    STS-Vi   , Qwen2-7B , tp     , Eng-Prompt, EOL
+Llama-2-7b-hf 1.0 0 0.00 0.00 0.00 0.00 0.00 0.00 60.62 8.66    SICK-R-Vi, LLaMA2-7B, vanilla, Eng-Prompt, EOL
+Llama-2-7b-hf 1.0 1 0.00 0.00 0.00 0.00 0.00 0.00 67.19 9.60    SICK-R-Vi, LLaMA2-7B, tp     , Eng-Prompt, EOL
+Llama-2-7b-hf 1.0 0 0.00 0.00 0.00 0.00 0.00 59.49 0.00 8.50    STS-B-Vi , LLaMA2-7B, vanilla, Eng-Prompt, EOL
+Llama-2-7b-hf 1.0 1 0.00 0.00 0.00 0.00 0.00 67.87 0.00 9.70    STS-B-Vi , LLaMA2-7B, tp     , Eng-Prompt, EOL
+Qwen2-7B 1.0 0 0.00 0.00 0.00 0.00 0.00 65.53 68.47 19.14       STS-Vi   , Qwen2-7B , vanilla, Eng-Prompt, EOL
+Qwen2-7B 1.0 1 0.00 0.00 0.00 0.00 0.00 70.33 68.42 19.82       STS-Vi   , Qwen2-7B , tp     , Eng-Prompt, EOL
+Qwen2-7B 1.0 0 0.00 0.00 0.00 0.00 0.00 60.38 65.85 18.03       STS-Vi   , Qwen2-7B , vanilla, Vi-Prompt , EOL
+Qwen2-7B 1.0 1 0.00 0.00 0.00 0.00 0.00 65.87 68.29 19.17       STS-Vi   , Qwen2-7B , tp     , Vi-Prompt , EOL
+Llama-2-7b-hf 1.0 0 0.00 0.00 0.00 0.00 0.00 54.11 60.85 16.42  STS-Vi   , LlaMA2-7B, vanilla, Vi-Prompt , EOL
+Llama-2-7b-hf 1.0 1 0.00 0.00 0.00 0.00 0.00 0.00 66.78 9.54
+Qwen2-7B 1.0 0 0.00 0.00 0.00 0.00 0.00 55.83 59.89 16.53
+Qwen2-7B 1.0 0 0.00 0.00 0.00 0.00 0.00 59.09 60.95 17.15
