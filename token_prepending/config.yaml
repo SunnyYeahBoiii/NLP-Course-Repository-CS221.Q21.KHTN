@@ -18,9 +18,9 @@ models:
     output_layer: -1
     tp_starting_index: 0  # not used in vanilla mode
     tp_exiting_index: 0   # not used in vanilla mode
-    batch_size: 8
+    batch_size: 2
     mode: test
-    task_set: sts
+    task_set: stsb
     prompt_method: prompteol
 
   # Llama-2-7b TP mode
@@ -30,9 +30,9 @@ models:
     output_layer: 27
     tp_starting_index: 1
     tp_exiting_index: 7
-    batch_size: 16
+    batch_size: 2
     mode: test
-    task_set: sts
+    task_set: stsb
     prompt_method: prompteol
 
   llama-2-13b:
@@ -85,10 +85,10 @@ models:
     output_layer: -1
     tp_starting_index: 0  
     tp_exiting_index: 0   
-    batch_size: 4
+    batch_size: 16
     mode: test
     task_set: sts
-    prompt_method: cot
+    prompt_method: prompteol
 
   qwen2-7b-tp:
     model_name_or_path: "/workspace/llm_weights/Qwen2-7B"
@@ -96,10 +96,10 @@ models:
     output_layer: -2
     tp_starting_index: 1
     tp_exiting_index: 6
-    batch_size: 1
+    batch_size: 16
     mode: test
     task_set: sts
-    prompt_method: cot
+    prompt_method: prompteol
 
   gemma2-9b:
     model_name_or_path: "/tos-bjml-ai4chem/fuyuchen/llm_weights/gemma-2-9b"

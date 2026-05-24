@@ -260,6 +260,8 @@ def main():
         args.tasks += ['MR', 'CR', 'MPQA', 'SUBJ', 'SST2', 'TREC', 'MRPC']
     elif args.task_set == 'stsb':
         args.tasks = ['STSBenchmark']
+    elif args.task_set == 'sickr':
+        args.tasks = ['SICKRelatedness']
     # Set params for SentEval
     if args.mode == 'dev' or args.mode == 'fasttest':
         # Fast mode
