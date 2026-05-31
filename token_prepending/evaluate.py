@@ -134,6 +134,9 @@ def main():
                         default=99)
     parser.add_argument("--batch_size", type=int, 
                         default=16)
+    parser.add_argument("--prediction_output_csv", type=str,
+                        default='',
+                        help="Optional CSV path to append pair-level STS predictions for error analysis.")
 
     args = parser.parse_args()
     
@@ -153,6 +156,7 @@ def main():
         args.task_set = config.get('task_set', args.task_set)
         args.prompt_method = config.get('prompt_method', args.prompt_method)
         args.prompt_language = config.get('prompt_language', args.prompt_language)
+        args.prediction_output_csv = config.get('prediction_output_csv', args.prediction_output_csv)
         
         if 'gpu_config' in config and 'cuda_visible_devices' in config['gpu_config']:
             os.environ['CUDA_VISIBLE_DEVICES'] = config['gpu_config']['cuda_visible_devices']
@@ -172,6 +176,7 @@ def main():
         {Fore.GREEN}TP Starting layer Index :{Style.RESET_ALL} {args.tp_starting_index}
         {Fore.GREEN}TP Exiting layer Index  :{Style.RESET_ALL} {args.tp_exiting_index}
         {Fore.GREEN}Batch Size              :{Style.RESET_ALL} {args.batch_size}
+        {Fore.GREEN}Prediction Output CSV   :{Style.RESET_ALL} {args.prediction_output_csv or 'disabled'}
     """)
 
     print(hyper_parameters)
@@ -280,6 +285,20 @@ def main():
     else:
         raise NotImplementedError
 
+    if args.prediction_output_csv:
+        params['prediction_output_csv'] = args.prediction_output_csv
+        params['prediction_metadata'] = {
+            'model_name_or_path': args.model_name_or_path,
+            'model_name': args.model_name_or_path.split('/')[-1],
+            'plan': args.use_which_plan,
+            'prompt_method': args.prompt_method,
+            'prompt_language': args.prompt_language,
+            'output_layer': args.output_layer,
+            'tp_starting_index': args.tp_starting_index,
+            'tp_exiting_index': args.tp_exiting_index,
+            'batch_size': args.batch_size,
+        }
+
     # SentEval prepare and batcher
     def prepare(params, samples):
         return
@@ -377,6 +396,7 @@ def main():
     results = {}
 
     for task in args.tasks:
+        params['current_task'] = task
         se = senteval.engine.SE(params, batcher, prepare)
         result = se.eval(task)
         results[task] = result

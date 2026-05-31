@@ -15,6 +15,7 @@ from __future__ import absolute_import, division, unicode_literals
 from tqdm import tqdm
 import os
 import io
+import csv
 import torch
 import numpy as np
 import logging
@@ -27,6 +28,54 @@ from senteval.sick import SICKEval
 import json
 
 class STSEval(object):
+    @staticmethod
+    def tokens_to_text(tokens):
+        return ' '.join(
+            token.decode('utf-8') if isinstance(token, bytes) else str(token)
+            for token in tokens
+        )
+
+    def write_prediction_rows(self, params, rows):
+        output_csv = params.get('prediction_output_csv')
+        if not output_csv or not rows:
+            return
+
+        output_dir = os.path.dirname(output_csv)
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+
+        metadata = params.get('prediction_metadata', {})
+        fieldnames = [
+            'model_name_or_path',
+            'model_name',
+            'plan',
+            'prompt_method',
+            'prompt_language',
+            'output_layer',
+            'tp_starting_index',
+            'tp_exiting_index',
+            'batch_size',
+            'task',
+            'dataset',
+            'row_index',
+            'sentence1',
+            'sentence2',
+            'gold_score',
+            'cosine',
+            'pred_score_0_5',
+            'abs_error_0_5',
+        ]
+
+        file_exists = os.path.exists(output_csv) and os.path.getsize(output_csv) > 0
+        with io.open(output_csv, 'a', encoding='utf-8', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            if not file_exists:
+                writer.writeheader()
+            for row in rows:
+                out = {key: metadata.get(key, '') for key in fieldnames}
+                out.update(row)
+                writer.writerow(out)
+
     def loadFile(self, fpath):
         self.data = {}
         self.samples = []
@@ -63,6 +112,8 @@ class STSEval(object):
         results = {}
         all_sys_scores = []
         all_gs_scores = []
+        prediction_rows = []
+        current_task = params.get('current_task', self.__class__.__name__)
 
         for dataset in self.datasets:
             sys_scores = []
@@ -77,8 +128,21 @@ class STSEval(object):
                     enc2 = batcher(params, batch2)
 
                     for kk in range(enc2.shape[0]):
-                        sys_score = self.similarity(enc1[kk], enc2[kk])
+                        sys_score = float(self.similarity(enc1[kk], enc2[kk]))
                         sys_scores.append(sys_score)
+                        gold_score = float(gs_scores[ii + kk])
+                        pred_score_0_5 = max(0.0, min(5.0, (sys_score + 1.0) * 2.5))
+                        prediction_rows.append({
+                            'task': current_task,
+                            'dataset': dataset,
+                            'row_index': ii + kk,
+                            'sentence1': self.tokens_to_text(input1[ii + kk]),
+                            'sentence2': self.tokens_to_text(input2[ii + kk]),
+                            'gold_score': gold_score,
+                            'cosine': sys_score,
+                            'pred_score_0_5': pred_score_0_5,
+                            'abs_error_0_5': abs(pred_score_0_5 - gold_score),
+                        })
             all_sys_scores.extend(sys_scores)
             all_gs_scores.extend(gs_scores)
             results[dataset] = {'pearson': pearsonr(sys_scores, gs_scores),
@@ -113,6 +177,7 @@ class STSEval(object):
         logging.debug('ALL (average) : Pearson = %.4f, \
             Spearman = %.4f\n' % (avg_pearson, avg_spearman))
 
+        self.write_prediction_rows(params, prediction_rows)
         return results
 
 

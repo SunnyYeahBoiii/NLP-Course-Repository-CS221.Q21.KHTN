@@ -289,6 +289,24 @@ bash run.sh qwen2-7b-vi-vanilla-en-prompt config_reproduce_vi_en_prompt.yaml
 bash run.sh qwen2-7b-vi-tp-en-prompt config_reproduce_vi_en_prompt.yaml
 ```
 
+Export tung sample de phan tich loi:
+
+```bash
+mkdir -p analysis
+
+bash run.sh qwen2-7b-vi-vanilla-en-prompt config_reproduce_vi_en_prompt.yaml \
+  --prediction_output_csv analysis/qwen2_vi_predictions_long.csv
+
+bash run.sh qwen2-7b-vi-tp-en-prompt config_reproduce_vi_en_prompt.yaml \
+  --prediction_output_csv analysis/qwen2_vi_predictions_long.csv
+
+python merge_sts_prediction_exports.py \
+  --input_csv analysis/qwen2_vi_predictions_long.csv \
+  --output_csv analysis/qwen2_vi_predictions_wide.csv
+```
+
+File `analysis/qwen2_vi_predictions_wide.csv` co cac cot chinh: `sentence1`, `sentence2`, `gold_score`, `vanilla_cosine`, `tp_cosine`, `abs_error_vanilla`, `abs_error_tp`, `error_gap`.
+
 Kết quả đã ghi nhận:
 
 | Dataset | Model | Plan | Spearman |
