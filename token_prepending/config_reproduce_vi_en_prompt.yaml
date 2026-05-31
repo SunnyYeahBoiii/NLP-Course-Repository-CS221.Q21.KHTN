@@ -1,0 +1,53 @@
+default_config: llama-2-7b-vi-vanilla-en-prompt
+
+gpu_config:
+  cuda_visible_devices: "0,1"
+
+models:
+  llama-2-7b-vi-vanilla-en-prompt:
+    model_name_or_path: "/workspace/llm_weights/Llama-2-7b-hf"
+    use_which_plan: vanilla
+    output_layer: -1
+    tp_starting_index: 0
+    tp_exiting_index: 0
+    batch_size: 8
+    mode: test
+    task_set: sts
+    prompt_method: prompteol
+    prompt_language: en
+
+  llama-2-7b-vi-tp-en-prompt:
+    model_name_or_path: "/workspace/llm_weights/Llama-2-7b-hf"
+    use_which_plan: tp
+    output_layer: 27
+    tp_starting_index: 1
+    tp_exiting_index: 7
+    batch_size: 8
+    mode: test
+    task_set: sts
+    prompt_method: prompteol
+    prompt_language: en
+
+  qwen2-7b-vi-vanilla-en-prompt:
+    model_name_or_path: "/workspace/llm_weights/Qwen2-7B"
+    use_which_plan: vanilla
+    output_layer: -1
+    tp_starting_index: 0
+    tp_exiting_index: 0
+    batch_size: 16
+    mode: test
+    task_set: sickr
+    prompt_method: prompteol
+    prompt_language: en
+
+  qwen2-7b-vi-tp-en-prompt:
+    model_name_or_path: "/workspace/llm_weights/Qwen2-7B"
+    use_which_plan: tp
+    output_layer: -2
+    tp_starting_index: 1
+    tp_exiting_index: 6
+    batch_size: 16
+    mode: test
+    task_set: sickr
+    prompt_method: prompteol
+    prompt_language: en
