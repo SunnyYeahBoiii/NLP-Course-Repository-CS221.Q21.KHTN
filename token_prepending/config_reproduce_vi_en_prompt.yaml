@@ -12,7 +12,7 @@ models:
     tp_exiting_index: 0
     batch_size: 8
     mode: test
-    task_set: sts
+    task_set: sickr
     prompt_method: prompteol
     prompt_language: en
 
@@ -24,7 +24,7 @@ models:
     tp_exiting_index: 7
     batch_size: 8
     mode: test
-    task_set: sts
+    task_set: sickr
     prompt_method: prompteol
     prompt_language: en
 
