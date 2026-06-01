@@ -1,11 +1,7 @@
 # CS221 Token Prepending
 
-- Reproduce Token Prepending trên SentEval tiếng Anh.
-- Sweep `tp_exiting_index = k` cho PromptEOL + TP.
-- Tạo và chạy STS-B-Vi, SICK-R-Vi.
-- Chạy baseline PhoBERT trên dữ liệu tiếng Việt.
-
-Code chính nằm ở [`token_prepending`](token_prepending).
+Link repo gốc: https://github.com/SunnyYeahBoiii/NLP-Course-Repository-CS221.Q21.KHTN
+Link repo Token Prepending: https://github.com/fuyuchenIfyw/token_prepending
 
 ## 1. Môi Trường
 
