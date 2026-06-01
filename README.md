@@ -318,7 +318,7 @@ Kết quả đã ghi nhận:
 | STS-B-Vi | Qwen2-7B | vanilla | 65.53 |
 | SICK-R-Vi | Qwen2-7B | vanilla | 68.47 |
 | STS-B-Vi | Qwen2-7B | TP | 70.33 |
-| SICK-R-Vi | Qwen2-7B | TP | 68.42 |
+| SICK-R-Vi | Qwen2-7B | TP | 69.59 |
 
 ## 8. PhoBERT Baseline
 
