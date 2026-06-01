@@ -22,7 +22,7 @@ models:
     output_layer: 27
     tp_starting_index: 1
     tp_exiting_index: 7
-    batch_size: 8
+    batch_size: 16
     mode: test
     task_set: sickr
     prompt_method: prompteol
